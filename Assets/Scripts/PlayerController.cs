@@ -8,13 +8,13 @@ public class PlayerController : MonoBehaviour
     [SerializeField] float moveSpeed = 10;
     Vector2 input = Vector2.zero;
 
-    public List<PointInTime> history;
+    public List<PointInTime> movementHistory;
     float historyLength = 30;
 
     // Start is called before the first frame update
     void Start()
     {
-        history = new List<PointInTime>();
+        movementHistory = new List<PointInTime>();
     }
 
     // Update is called once per frame
@@ -25,20 +25,19 @@ public class PlayerController : MonoBehaviour
 
     void FixedUpdate()
     {
+        Vector3 oldPos = transform.position;
         transform.position = Vector3.MoveTowards(transform.position, transform.position + new Vector3(input.x, 0, input.y), moveSpeed * Time.fixedDeltaTime);
-        Record();
+        Record(transform.position - oldPos);
     }
 
-    void Record()
+    void Record(Vector3 positionDelta)
     {
-        //PointInTime current = new PointInTime(transform.position, transform.rotation);
-
-        if(history.Count > historyLength / Time.fixedDeltaTime)
+        if (movementHistory.Count > historyLength / Time.fixedDeltaTime)
         {
-            history.RemoveAt(history.Count - 1);
+            movementHistory.RemoveAt(movementHistory.Count - 1);
         }
 
-        history.Add(new PointInTime(transform.position, transform.rotation));
+        movementHistory.Add(new PointInTime(positionDelta, transform.rotation));
     }
 
 }
