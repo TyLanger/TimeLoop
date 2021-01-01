@@ -6,6 +6,7 @@ public class Follower : MonoBehaviour
 {
 
     public PlayerController followerTarget; // need to refactor to make more generic
+    PlayerController controller;
 
     public float timeOffset = 3;
     // how to make this more variable?
@@ -35,17 +36,22 @@ public class Follower : MonoBehaviour
 
     public bool mirrored = false;
 
-
     bool destroyElement = true;
+
+    ActionInTime currentNextAction;
+    Coroutine nextActionCoroutine;
+
     // Start is called before the first frame update
     void Start()
     {
         baseMoveSpeed = moveSpeed;
+        controller = GetComponent<PlayerController>();
     }
 
     void Update()
     {
         /// Testing
+        /*
         if(Input.GetButtonDown("Jump"))
         {
             timeOffset = 1;
@@ -54,6 +60,16 @@ public class Follower : MonoBehaviour
         {
             timeOffset = 2;
         }
+        */
+
+        if(currentNextAction == null && followerTarget.actionHistory.Count > 0)
+        {
+            currentNextAction = followerTarget.actionHistory[0];
+
+            // figure out what type of action it is
+            nextActionCoroutine = StartCoroutine(Shoot((timeOffset + currentNextAction.time) - Time.time));
+        }
+
     }
 
     // Update is called once per frame
@@ -87,7 +103,7 @@ public class Follower : MonoBehaviour
             else if(followerTarget.movementHistory.Count - 1 < (int)(timeOffset / Time.fixedDeltaTime))
             {
                 //Debug.Log("Too few");
-                Debug.LogFormat("Too many elements. Count: {0} Calculation: {1}", followerTarget.movementHistory.Count-1, (int)(timeOffset / Time.fixedDeltaTime));
+                //Debug.LogFormat("Too many elements. Count: {0} Calculation: {1}", followerTarget.movementHistory.Count-1, (int)(timeOffset / Time.fixedDeltaTime));
 
                 // skip until caught up?
                 // would like to just go slow, but how?
@@ -127,9 +143,40 @@ public class Follower : MonoBehaviour
             deltaPosition = followerTarget.movementHistory[0].movement;
         }
 
-        transform.position = Vector3.MoveTowards(transform.position, transform.position + deltaPosition, moveSpeed * Time.fixedDeltaTime);
+        if(controller != null)
+        {
+            controller.SetInput(deltaPosition);
+        }
+        else
+        {
+            transform.position = Vector3.MoveTowards(transform.position, transform.position + deltaPosition, moveSpeed * Time.fixedDeltaTime);
+        }
+
         transform.rotation = followerTarget.movementHistory[0].rotation;
-        if(destroyElement)
+
+        if (destroyElement)
             followerTarget.movementHistory.RemoveAt(0);
+    }
+
+    IEnumerator Shoot(float waitTime)
+    {
+        yield return new WaitForSeconds(waitTime);
+
+        controller?.FireEvent();
+        // missing some bullets
+        // this coroutine runs correctly, but not all bullets are spawned
+        // possibly a small discrepency between the timing
+        // time is 12.345677
+        // time of next attack is 12.345678
+        // off by 0.000001
+        Debug.Log("Bam! Bam! at " + Time.time);
+        ClearCurrentAction();
+        yield return null;
+    }
+
+    void ClearCurrentAction()
+    {
+        followerTarget.actionHistory.RemoveAt(0);
+        currentNextAction = null;
     }
 }
